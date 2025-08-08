@@ -35,6 +35,9 @@ RUN npm ci --only=production
 # Crear directorio para modelos si no existe
 RUN mkdir -p models
 
+# Descargar modelos de face-api.js durante el build
+RUN npm run download-models
+
 # Crear usuario no-root para seguridad
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001

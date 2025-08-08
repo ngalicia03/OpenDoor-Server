@@ -40,13 +40,21 @@ if (supabaseUrl && supabaseKey) {
 }
 
 // Configurar MQTT
-const mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL, {
-    username: process.env.MQTT_USERNAME,
-    password: process.env.MQTT_PASSWORD,
-    reconnectPeriod: 5000,
-    connectTimeout: 10000,
-    keepalive: 60
-});
+let mqttClient = null;
+
+// Inicializar MQTT solo si las variables están disponibles
+if (process.env.MQTT_BROKER_URL && process.env.MQTT_USERNAME && process.env.MQTT_PASSWORD) {
+    mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL, {
+        username: process.env.MQTT_USERNAME,
+        password: process.env.MQTT_PASSWORD,
+        reconnectPeriod: 5000,
+        connectTimeout: 10000,
+        keepalive: 60
+    });
+    console.log('✅ [MQTT] Cliente inicializado correctamente');
+} else {
+    console.warn('⚠️ [MQTT] Variables de entorno no configuradas - MQTT no disponible');
+}
 
 // Variables globales
 let faceDetectionNet;
@@ -301,6 +309,12 @@ async function saveLogToSupabase(validationResult, confidence = null) {
 // Función para controlar puerta via MQTT
 async function controlDoorViaMQTT(validationResult) {
     try {
+        // Verificar si MQTT está disponible
+        if (!mqttClient) {
+            console.warn('⚠️ [DOOR] MQTT no disponible - saltando control de puerta');
+            return false;
+        }
+
         if (validationResult.hasAccess && validationResult.user) {
             console.log(`🔓 [DOOR] Abriendo puerta para: ${validationResult.user.full_name}`);
 
@@ -447,18 +461,20 @@ app.get('/status', (req, res) => {
     });
 });
 
-// Configurar MQTT
-mqttClient.on('connect', () => {
-    console.log('✅ [MQTT] Conectado al broker MQTT');
-});
+// Configurar MQTT (solo si está disponible)
+if (mqttClient) {
+    mqttClient.on('connect', () => {
+        console.log('✅ [MQTT] Conectado al broker MQTT');
+    });
 
-mqttClient.on('error', (error) => {
-    console.error('❌ [MQTT] Error de conexión:', error);
-});
+    mqttClient.on('error', (error) => {
+        console.error('❌ [MQTT] Error de conexión:', error);
+    });
 
-mqttClient.on('close', () => {
-    console.log('🔌 [MQTT] Conexión MQTT cerrada');
-});
+    mqttClient.on('close', () => {
+        console.log('🔌 [MQTT] Conexión MQTT cerrada');
+    });
+}
 
 // Función principal de inicialización
 async function initializeServer() {
@@ -518,7 +534,9 @@ process.on('SIGINT', () => {
     if (rtspProcessor) {
         rtspProcessor.stop();
     }
-    mqttClient.end();
+    if (mqttClient) {
+        mqttClient.end();
+    }
     process.exit(0);
 });
 
@@ -527,7 +545,9 @@ process.on('SIGTERM', () => {
     if (rtspProcessor) {
         rtspProcessor.stop();
     }
-    mqttClient.end();
+    if (mqttClient) {
+        mqttClient.end();
+    }
     process.exit(0);
 });
 
