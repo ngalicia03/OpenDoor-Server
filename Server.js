@@ -461,6 +461,22 @@ app.get('/status', (req, res) => {
     });
 });
 
+// Endpoint de debug para variables de entorno
+app.get('/debug/env', (req, res) => {
+    res.json({
+        SUPABASE_URL: process.env.SUPABASE_URL ? '✅ Configurada' : '❌ No configurada',
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '✅ Configurada' : '❌ No configurada',
+        RTSP_URL: process.env.RTSP_URL ? '✅ Configurada' : '❌ No configurada',
+        MQTT_BROKER_URL: process.env.MQTT_BROKER_URL ? '✅ Configurada' : '❌ No configurada',
+        MQTT_USERNAME: process.env.MQTT_USERNAME ? '✅ Configurada' : '❌ No configurada',
+        MQTT_PASSWORD: process.env.MQTT_PASSWORD ? '✅ Configurada' : '❌ No configurada',
+        MQTT_TOPIC: process.env.MQTT_TOPIC ? '✅ Configurada' : '❌ No configurada',
+        ZONE_ID: process.env.ZONE_ID ? '✅ Configurada' : '❌ No configurada',
+        PORT: process.env.PORT || '3001 (default)',
+        NODE_ENV: process.env.NODE_ENV || 'production'
+    });
+});
+
 // Configurar MQTT (solo si está disponible)
 if (mqttClient) {
     mqttClient.on('connect', () => {
@@ -482,6 +498,17 @@ async function initializeServer() {
         console.log('🚀 [INIT] Iniciando servidor OpenDoor en Trailway...');
         console.log(`🌐 [ENV] Puerto: ${PORT}`);
         console.log(`🌐 [ENV] NODE_ENV: ${process.env.NODE_ENV || 'production'}`);
+        
+        // Debug: Mostrar todas las variables de entorno relevantes
+        console.log('🔍 [DEBUG] Variables de entorno:');
+        console.log(`   SUPABASE_URL: ${process.env.SUPABASE_URL ? '✅ Configurada' : '❌ No configurada'}`);
+        console.log(`   SUPABASE_ANON_KEY: ${process.env.SUPABASE_ANON_KEY ? '✅ Configurada' : '❌ No configurada'}`);
+        console.log(`   RTSP_URL: ${process.env.RTSP_URL ? '✅ Configurada' : '❌ No configurada'}`);
+        console.log(`   MQTT_BROKER_URL: ${process.env.MQTT_BROKER_URL ? '✅ Configurada' : '❌ No configurada'}`);
+        console.log(`   MQTT_USERNAME: ${process.env.MQTT_USERNAME ? '✅ Configurada' : '❌ No configurada'}`);
+        console.log(`   MQTT_PASSWORD: ${process.env.MQTT_PASSWORD ? '✅ Configurada' : '❌ No configurada'}`);
+        console.log(`   MQTT_TOPIC: ${process.env.MQTT_TOPIC ? '✅ Configurada' : '❌ No configurada'}`);
+        console.log(`   ZONE_ID: ${process.env.ZONE_ID ? '✅ Configurada' : '❌ No configurada'}`);
 
         // Iniciar servidor Express PRIMERO (para que health check funcione)
         const server = app.listen(PORT, '0.0.0.0', () => {
