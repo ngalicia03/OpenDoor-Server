@@ -29,7 +29,15 @@ faceapi.env.monkeyPatch({
 // Configurar Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let supabase = null;
+
+// Inicializar Supabase solo si las variables están disponibles
+if (supabaseUrl && supabaseKey) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('✅ [SUPABASE] Cliente inicializado correctamente');
+} else {
+    console.warn('⚠️ [SUPABASE] Variables de entorno no configuradas - Supabase no disponible');
+}
 
 // Configurar MQTT
 const mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL, {
@@ -164,6 +172,18 @@ async function processFaceImage(imageBuffer) {
 // Función para validar rostro con Supabase
 async function validateFaceWithSupabase(embedding, imageBuffer) {
     try {
+        // Verificar si Supabase está disponible
+        if (!supabase) {
+            console.warn('⚠️ [VALIDATION] Supabase no disponible - saltando validación');
+            return {
+                hasAccess: false,
+                user: null,
+                type: 'no_supabase',
+                message: 'Supabase no configurado',
+                similarity: 0
+            };
+        }
+
         console.log('🔍 [VALIDATION] Validando rostro con Supabase...');
 
         // Convertir imagen a base64
@@ -240,6 +260,12 @@ async function validateFaceWithSupabase(embedding, imageBuffer) {
 // Función para guardar log en Supabase
 async function saveLogToSupabase(validationResult, confidence = null) {
     try {
+        // Verificar si Supabase está disponible
+        if (!supabase) {
+            console.warn('⚠️ [LOG] Supabase no disponible - saltando guardado de log');
+            return false;
+        }
+
         console.log('📝 [LOG] Guardando log en Supabase...');
 
         const logEntry = {
@@ -414,8 +440,8 @@ app.get('/status', (req, res) => {
     res.json({
         status: 'running',
         modelsLoaded: isModelsLoaded,
-        mqttConnected: mqttClient.connected,
-        supabaseConfigured: !!(supabaseUrl && supabaseKey),
+        mqttConnected: mqttClient?.connected || false,
+        supabaseConfigured: !!(supabaseUrl && supabaseKey && supabase),
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'production'
     });
