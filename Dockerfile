@@ -26,11 +26,11 @@ RUN apk add --no-cache \
 # Copiar package.json y package-lock.json
 COPY package*.json ./
 
-# Instalar dependencias de Node.js
-RUN npm ci --only=production
-
-# Copiar el código fuente
+# Copiar el código fuente ANTES de instalar dependencias
 COPY . .
+
+# Instalar dependencias de Node.js (ahora downloadModels.js estará disponible)
+RUN npm ci --only=production
 
 # Crear directorio para modelos si no existe
 RUN mkdir -p models
