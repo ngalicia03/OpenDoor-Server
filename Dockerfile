@@ -17,6 +17,10 @@ RUN apk add --no-cache \
     musl-dev \
     ffmpeg \
     git \
+    giflib-dev \
+    pixman-dev \
+    pangomm-dev \
+    libjpeg-turbo-dev \
     && rm -rf /var/cache/apk/*
 
 # Copiar package.json y package-lock.json
