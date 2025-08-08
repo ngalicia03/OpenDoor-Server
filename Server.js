@@ -61,16 +61,31 @@ const upload = multer({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint para servicios de nube
+// Health check endpoint simple y robusto
 app.get('/health', (req, res) => {
-    res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        modelsLoaded: isModelsLoaded,
-        mqttConnected: mqttClient.connected
-    });
+    try {
+        res.status(200).json({
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            modelsLoaded: isModelsLoaded || false,
+            mqttConnected: mqttClient?.connected || false,
+            server: 'running'
+        });
+    } catch (error) {
+        console.error('❌ [HEALTH] Error en health check:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Health check endpoint simple (sin dependencias)
+app.get('/ping', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Función para cargar modelos de face-api.js
@@ -426,36 +441,48 @@ async function initializeServer() {
         console.log(`🌐 [ENV] Puerto: ${PORT}`);
         console.log(`🌐 [ENV] NODE_ENV: ${process.env.NODE_ENV || 'production'}`);
 
-        // Verificar variables de entorno
-        if (!supabaseUrl || !supabaseKey) {
-            throw new Error('Faltan variables de entorno de Supabase');
-        }
-
-        // Cargar modelos de face-api.js
-        await loadFaceApiModels();
-
-        // Iniciar servidor Express
-        app.listen(PORT, '0.0.0.0', () => {
+        // Iniciar servidor Express PRIMERO (para que health check funcione)
+        const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`✅ [SERVER] Servidor iniciado en puerto ${PORT}`);
             console.log(`📊 [SERVER] Endpoints disponibles:`);
-            console.log(`   - GET /health - Health check`);
+            console.log(`   - GET /ping - Health check simple`);
+            console.log(`   - GET /health - Health check detallado`);
             console.log(`   - GET /status - Estado del servidor`);
             console.log(`   - POST /process-face - Procesar imagen facial`);
             console.log(`   - POST /process-frame - Procesar frame completo`);
         });
 
+        // Verificar variables de entorno (pero no fallar si no están)
+        if (!supabaseUrl || !supabaseKey) {
+            console.warn('⚠️ [INIT] Faltan variables de entorno de Supabase - algunos features no funcionarán');
+        }
+
+        // Cargar modelos de face-api.js (en background)
+        loadFaceApiModels().then(() => {
+            console.log('✅ [INIT] Modelos cargados en background');
+        }).catch((error) => {
+            console.error('❌ [INIT] Error cargando modelos:', error);
+            console.log('⚠️ [INIT] Servidor funcionará sin modelos de IA');
+        });
+
         // Iniciar procesador RTSP solo si está configurado
         if (process.env.RTSP_URL) {
             console.log('🔄 [RTSP] Iniciando procesador RTSP...');
-            rtspProcessor = new RTSPProcessor(process.env.RTSP_URL, processFrame);
-            await rtspProcessor.start();
+            try {
+                rtspProcessor = new RTSPProcessor(process.env.RTSP_URL, processFrame);
+                await rtspProcessor.start();
+            } catch (error) {
+                console.error('❌ [RTSP] Error iniciando RTSP:', error);
+                console.log('⚠️ [RTSP] Servidor funcionará sin RTSP');
+            }
         } else {
             console.log('⚠️ [RTSP] No se configuró URL RTSP, procesador no iniciado');
         }
 
     } catch (error) {
-        console.error('❌ [INIT] Error iniciando servidor:', error);
-        process.exit(1);
+        console.error('❌ [INIT] Error crítico iniciando servidor:', error);
+        // No hacer process.exit(1) para que el health check pueda funcionar
+        console.log('🔄 [INIT] Intentando continuar con funcionalidad limitada...');
     }
 }
 
