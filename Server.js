@@ -464,16 +464,39 @@ app.get('/status', (req, res) => {
 // Endpoint de debug para variables de entorno
 app.get('/debug/env', (req, res) => {
     res.json({
-        SUPABASE_URL: process.env.SUPABASE_URL ? '✅ Configurada' : '❌ No configurada',
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '✅ Configurada' : '❌ No configurada',
-        RTSP_URL: process.env.RTSP_URL ? '✅ Configurada' : '❌ No configurada',
-        MQTT_BROKER_URL: process.env.MQTT_BROKER_URL ? '✅ Configurada' : '❌ No configurada',
-        MQTT_USERNAME: process.env.MQTT_USERNAME ? '✅ Configurada' : '❌ No configurada',
-        MQTT_PASSWORD: process.env.MQTT_PASSWORD ? '✅ Configurada' : '❌ No configurada',
-        MQTT_TOPIC: process.env.MQTT_TOPIC ? '✅ Configurada' : '❌ No configurada',
-        ZONE_ID: process.env.ZONE_ID ? '✅ Configurada' : '❌ No configurada',
+        SUPABASE_URL: process.env.SUPABASE_URL ? 
+            `✅ Configurada (${process.env.SUPABASE_URL.substring(0, 20)}...)` : 
+            '❌ No configurada',
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? 
+            `✅ Configurada (${process.env.SUPABASE_ANON_KEY.substring(0, 10)}...)` : 
+            '❌ No configurada',
+        RTSP_URL: process.env.RTSP_URL ? 
+            `✅ Configurada (${process.env.RTSP_URL.substring(0, 30)}...)` : 
+            '❌ No configurada',
+        MQTT_BROKER_URL: process.env.MQTT_BROKER_URL ? 
+            `✅ Configurada (${process.env.MQTT_BROKER_URL})` : 
+            '❌ No configurada',
+        MQTT_USERNAME: process.env.MQTT_USERNAME ? 
+            `✅ Configurada (${process.env.MQTT_USERNAME})` : 
+            '❌ No configurada',
+        MQTT_PASSWORD: process.env.MQTT_PASSWORD ? 
+            `✅ Configurada (${process.env.MQTT_PASSWORD.substring(0, 3)}...)` : 
+            '❌ No configurada',
+        MQTT_TOPIC: process.env.MQTT_TOPIC ? 
+            `✅ Configurada (${process.env.MQTT_TOPIC})` : 
+            '❌ No configurada',
+        ZONE_ID: process.env.ZONE_ID ? 
+            `✅ Configurada (${process.env.ZONE_ID.substring(0, 8)}...)` : 
+            '❌ No configurada',
         PORT: process.env.PORT || '3001 (default)',
-        NODE_ENV: process.env.NODE_ENV || 'production'
+        NODE_ENV: process.env.NODE_ENV || 'production',
+        // Debug adicional
+        allEnvVars: Object.keys(process.env).filter(key => 
+            key.includes('SUPABASE') || 
+            key.includes('MQTT') || 
+            key.includes('RTSP') || 
+            key.includes('ZONE')
+        )
     });
 });
 
