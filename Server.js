@@ -7,7 +7,14 @@ const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
 const { v4: uuidv4 } = require('uuid');
 const RTSPProcessor = require('./rtspProcessor');
-require('dotenv').config();
+
+// Solo cargar .env en desarrollo, no en producción
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config();
+    console.log('🔧 [DEV] Cargando variables desde archivo .env');
+} else {
+    console.log('🚀 [PROD] Usando variables de entorno del sistema');
+}
 
 // Configuración
 const app = express();
@@ -532,6 +539,23 @@ async function initializeServer() {
         console.log(`   MQTT_PASSWORD: ${process.env.MQTT_PASSWORD ? '✅ Configurada' : '❌ No configurada'}`);
         console.log(`   MQTT_TOPIC: ${process.env.MQTT_TOPIC ? '✅ Configurada' : '❌ No configurada'}`);
         console.log(`   ZONE_ID: ${process.env.ZONE_ID ? '✅ Configurada' : '❌ No configurada'}`);
+        
+        // Debug adicional: mostrar todas las variables de entorno
+        console.log('🔍 [DEBUG] Todas las variables de entorno disponibles:');
+        const relevantVars = Object.keys(process.env).filter(key => 
+            key.includes('SUPABASE') || 
+            key.includes('MQTT') || 
+            key.includes('RTSP') || 
+            key.includes('ZONE') ||
+            key.includes('PORT') ||
+            key.includes('NODE_ENV')
+        );
+        relevantVars.forEach(key => {
+            const value = process.env[key];
+            const maskedValue = key.includes('KEY') || key.includes('PASSWORD') ? 
+                `${value.substring(0, 5)}...` : value;
+            console.log(`   ${key}: ${maskedValue}`);
+        });
 
         // Iniciar servidor Express PRIMERO (para que health check funcione)
         const server = app.listen(PORT, '0.0.0.0', () => {
