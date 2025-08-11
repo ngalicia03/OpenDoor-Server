@@ -51,13 +51,18 @@ let mqttClient = null;
 
 // Inicializar MQTT solo si las variables están disponibles
 if (process.env.MQTT_BROKER_URL && process.env.MQTT_USERNAME && process.env.MQTT_PASSWORD) {
+    console.log('🔄 [MQTT] Intentando conectar al broker MQTT...');
+    
     mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL, {
         username: process.env.MQTT_USERNAME,
         password: process.env.MQTT_PASSWORD,
-        reconnectPeriod: 5000,
-        connectTimeout: 10000,
-        keepalive: 60
+        reconnectPeriod: 10000, // 10 segundos
+        connectTimeout: 30000,  // 30 segundos
+        keepalive: 60,
+        clean: true,
+        rejectUnauthorized: false
     });
+    
     console.log('✅ [MQTT] Cliente inicializado correctamente');
 } else {
     console.warn('⚠️ [MQTT] Variables de entorno no configuradas - MQTT no disponible');
@@ -115,6 +120,26 @@ app.get('/ping', (req, res) => {
 async function loadFaceApiModels() {
     try {
         console.log('🔄 [MODELS] Cargando modelos de face-api.js...');
+        
+        // Verificar si los modelos existen
+        const fs = require('fs');
+        const path = require('path');
+        const modelsDir = path.join(__dirname, 'models');
+        
+        // Si no existe el directorio models o está vacío, descargar modelos
+        if (!fs.existsSync(modelsDir) || fs.readdirSync(modelsDir).length === 0) {
+            console.log('⚠️ [MODELS] Directorio models no existe o está vacío, descargando modelos...');
+            try {
+                const downloadModels = require('./downloadModels');
+                await downloadModels();
+                console.log('✅ [MODELS] Modelos descargados exitosamente');
+            } catch (downloadError) {
+                console.error('❌ [MODELS] Error descargando modelos:', downloadError);
+                console.log('⚠️ [MODELS] Continuando sin modelos de IA');
+                isModelsLoaded = false;
+                return;
+            }
+        }
         
         // Cargar modelos desde el directorio models
         await faceapi.nets.ssdMobilenetv1.loadFromDisk('./models');
