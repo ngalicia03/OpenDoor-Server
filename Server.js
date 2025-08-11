@@ -503,8 +503,25 @@ app.get('/debug/env', (req, res) => {
             key.includes('MQTT') || 
             key.includes('RTSP') || 
             key.includes('ZONE')
-        )
+        ),
+        // TODAS las variables de entorno (para debug completo)
+        allEnvironmentVariables: Object.keys(process.env).sort()
     });
+});
+
+// Endpoint para ver TODAS las variables de entorno (solo para debug)
+app.get('/debug/all-env', (req, res) => {
+    const allVars = {};
+    Object.keys(process.env).sort().forEach(key => {
+        const value = process.env[key];
+        // Enmascarar valores sensibles
+        if (key.includes('KEY') || key.includes('PASSWORD') || key.includes('SECRET')) {
+            allVars[key] = value ? `${value.substring(0, 5)}...` : value;
+        } else {
+            allVars[key] = value;
+        }
+    });
+    res.json(allVars);
 });
 
 // Configurar MQTT (solo si está disponible)
